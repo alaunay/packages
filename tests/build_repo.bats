@@ -90,6 +90,7 @@ make_key() {
 	[ "$status" -eq 0 ]
 	[ -f "$SITE/deb/dists/stable/InRelease" ]
 	grep -q '^Package: testpkg$' "$SITE/deb/dists/stable/main/binary-amd64/Packages"
+	grep -q '<code>testpkg</code>' "$SITE/index.html"
 	gpg --verify "$SITE/deb/dists/stable/InRelease" >/dev/null 2>&1
 }
 
@@ -107,6 +108,7 @@ make_key() {
 	[ "$status" -eq 0 ]
 	[ -f "$SITE/rpm/el10/repodata/repomd.xml" ]
 	[ -f "$SITE/rpm/el10/repodata/repomd.xml.asc" ]
+	grep -q '<code>testpkg</code>' "$SITE/index.html"
 	gpg --verify "$SITE/rpm/el10/repodata/repomd.xml.asc" \
 		"$SITE/rpm/el10/repodata/repomd.xml" >/dev/null 2>&1
 
