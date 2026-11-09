@@ -35,6 +35,10 @@ $ sudo dnf install euromillions
 assets of each latest release, rebuilds both repositories, and deploys them
 on a schedule, on demand, and on a `release` repository dispatch.
 
+A project dispatches on every release when its `PACKAGES_TOKEN` secret is
+set; the token needs write access here. Without it the daily run picks the
+release up within a day.
+
 ## Requirements for a project
 
 Publish the `.deb` and `.rpm` as release assets. Nothing else is needed: the

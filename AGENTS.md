@@ -16,14 +16,17 @@ publish `.deb` and `.rpm` files as assets of its latest release.
 
 ## Tests
 
-The builder has a bats suite:
+The builder has a bats suite, and the shellcheck converter a unittest
+suite:
 
 ```
-bats tests
+bats tests/build_repo.bats
+ruff check tools tests
+python3 -m unittest discover -s tests
 ```
 
-It builds a signed apt repository and a signed rpm repository from
-throwaway packages and a throwaway key, and skips a case only when the
+The bats cases build a signed apt repository and a signed rpm repository
+from throwaway packages and a throwaway key, and skip a case only when the
 distribution tooling for that format is absent.
 
 ## Commit rules
@@ -31,7 +34,15 @@ distribution tooling for that format is absent.
 Every commit is signed with `git commit -s -S` and carries a
 `Co-authored-by` trailer per contributing model.
 
+## Checks
+
+CI runs bats, the Python lint and tests, shellcheck-to-SARIF code scanning,
+and the commit trailer check. All four are required on `master`.
+
 ## Secrets
 
 `REPO_GPG_PRIVATE_KEY` and `REPO_GPG_KEY_ID`. Pages must use the GitHub
 Actions source.
+
+Projects send a `release` repository dispatch with their own
+`PACKAGES_TOKEN`; the token needs write access to this repository.
