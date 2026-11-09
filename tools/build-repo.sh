@@ -78,6 +78,17 @@ if find "$out/rpm/el10" -maxdepth 1 -name '*.rpm' | grep -q .; then
 	fi
 fi
 
+# ---- Published packages ----------------------------------------------
+deb_rows=$(awk '/^Package: /{name=$2} /^Version: /{
+	printf "<tr><td><code>%s</code></td><td>%s</td></tr>\n", name, $2
+}' "$out/deb/dists/stable/main/binary-amd64/Packages")
+
+rpm_rows=
+if find "$out/rpm/el10" -maxdepth 1 -name '*.rpm' | grep -q .; then
+	rpm_rows=$(rpm -qp --qf \
+		'<tr><td><code>%{NAME}</code></td><td>%{VERSION}-%{RELEASE}</td></tr>\n' 		"$out/rpm/el10"/*.rpm 2>/dev/null)
+fi
+
 # ---- Keys and landing page -------------------------------------------
 if [ -n "$key" ]; then
 	gpg --armor --export "$key" > "$out/keys/repo.asc"
@@ -100,20 +111,40 @@ cat > "$out/index.html" <<EOF
 <title>$label</title>
 <h1>$label</h1>
 
-<h2>Debian and Ubuntu</h2>
+<h2>Install</h2>
+
+<h3>Debian and Ubuntu</h3>
 <pre>
 curl -fsSL $base/keys/repo.asc \\
   | sudo gpg --dearmor -o /usr/share/keyrings/$origin.gpg
 echo "deb [signed-by=/usr/share/keyrings/$origin.gpg] $base/deb stable main" \\
   | sudo tee /etc/apt/sources.list.d/$origin.list
 sudo apt update
+sudo apt install PACKAGE
 </pre>
 
-<h2>CentOS and RHEL</h2>
+<h3>CentOS and RHEL</h3>
 <pre>
 sudo curl -fsSL -o /etc/yum.repos.d/$origin.repo $base/$origin.repo
+sudo dnf install PACKAGE
 </pre>
 
-<p>Packages: <a href="deb/">apt</a>, <a href="rpm/el10/">rpm</a>.</p>
+<h2>Published packages</h2>
+
+<h3>apt</h3>
+<table>
+<thead><tr><th>Package</th><th>Version</th></tr></thead>
+<tbody>
+$deb_rows</tbody>
+</table>
+
+<h3>rpm</h3>
+<table>
+<thead><tr><th>Package</th><th>Version</th></tr></thead>
+<tbody>
+$rpm_rows</tbody>
+</table>
+
+<p>Raw trees: <a href="deb/">apt</a>, <a href="rpm/el10/">rpm</a>.</p>
 </html>
 EOF
