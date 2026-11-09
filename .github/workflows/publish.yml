@@ -1,0 +1,73 @@
+name: publish
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+  repository_dispatch:
+    types: [release]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install the repository tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq apt-utils createrepo-c dpkg-dev gnupg rpm
+
+      - name: Import the signing key
+        env:
+          REPO_GPG_PRIVATE_KEY: ${{ secrets.REPO_GPG_PRIVATE_KEY }}
+        run: |
+          if [ -z "$REPO_GPG_PRIVATE_KEY" ]; then
+            echo "REPO_GPG_PRIVATE_KEY is not set" >&2
+            exit 1
+          fi
+          printf '%s\n' "$REPO_GPG_PRIVATE_KEY" | gpg --batch --import
+
+      - name: Collect the release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p dist
+          while read -r project; do
+            [ -n "$project" ] || continue
+            tag=$(gh release view --repo "$project" --json tagName --jq .tagName) || {
+              echo "$project: no release, skipped" >&2
+              continue
+            }
+            echo "$project: $tag"
+            mkdir -p "dist/$project"
+            gh release download "$tag" --repo "$project" --dir "dist/$project" \
+              --pattern "*.deb" --pattern "*.rpm" || true
+          done < projects.txt
+
+      - name: Build the repositories
+        env:
+          REPO_GPG_KEY_ID: ${{ secrets.REPO_GPG_KEY_ID }}
+          REPO_ORIGIN: alaunay
+          REPO_LABEL: Alaunay packages
+          REPO_BASE_URL: https://alaunay.github.io/packages
+        run: tools/build-repo.sh dist site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - uses: actions/deploy-pages@v4
+        id: deployment
