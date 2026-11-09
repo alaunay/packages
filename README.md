@@ -56,6 +56,21 @@ A project dispatches on every release when its `PACKAGES_TOKEN` secret is
 set; the token needs write access here. Without it the daily run picks the
 release up within a day.
 
+## Key rotation
+
+The signing key expires in November 2028 and its revocation certificate is
+kept offline. Rotate before the expiry:
+
+1. Generate a new key with `gpg --quick-generate-key 'alaunay repository
+   <asl@launay.org>' rsa4096 sign 2y` and publish its fingerprint.
+2. Sign both repositories with the new key, keeping the old one available
+   until the last package signed with it is replaced.
+3. Update `REPO_GPG_KEY_ID` and `REPO_GPG_PRIVATE_KEY` in the repository
+   secrets, rebuild, and tell users to re-run the key verification.
+
+If the key were compromised, publish the revocation certificate first:
+`gpg --import revoke.asc && gpg --export > keys/repo.asc`.
+
 ## Requirements for a project
 
 Publish the `.deb` and `.rpm` as release assets. Nothing else is needed: the

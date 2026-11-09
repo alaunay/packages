@@ -79,14 +79,28 @@ if find "$out/rpm/el10" -maxdepth 1 -name '*.rpm' | grep -q .; then
 fi
 
 # ---- Published packages ----------------------------------------------
-deb_rows=$(awk '/^Package: /{name=$2} /^Version: /{
-	printf "<tr><td><code>%s</code></td><td>%s</td></tr>\n", name, $2
-}' "$out/deb/dists/stable/main/binary-amd64/Packages")
+# shellcheck disable=SC2016
+# the awk program uses $1 and $2, which the shell must not expand
+escape_rows='function esc(v) {
+	gsub(/&/, "\\&amp;", v); gsub(/</, "\\&lt;", v)
+	gsub(/>/, "\\&gt;", v); gsub(/"/, "\\&quot;", v)
+	return v
+}
+{ printf "<tr><td><code>%s</code></td><td>%s</td></tr>\n", esc($1), esc($2) }'
+
+deb_rows=$(awk '/^Package: /{name=$2} /^Version: /{print name, $2}' \
+	"$out/deb/dists/stable/main/binary-amd64/Packages" | awk "$escape_rows")
 
 rpm_rows=
 if find "$out/rpm/el10" -maxdepth 1 -name '*.rpm' | grep -q .; then
-	rpm_rows=$(rpm -qp --qf \
-		'<tr><td><code>%{NAME}</code></td><td>%{VERSION}-%{RELEASE}</td></tr>\n' 		"$out/rpm/el10"/*.rpm 2>/dev/null)
+	rpm_rows=$(rpm -qp --qf '%{NAME} %{VERSION}-%{RELEASE}\n' \
+		"$out/rpm/el10"/*.rpm 2>/dev/null | awk "$escape_rows")
+fi
+
+fingerprint=
+if [ -n "$key" ]; then
+	fingerprint=$(gpg --with-colons --fingerprint "$key" |
+		awk -F: '/^fpr/ { print $10; exit }')
 fi
 
 # ---- Keys and landing page -------------------------------------------
@@ -127,6 +141,12 @@ sudo apt install PACKAGE
 <pre>
 sudo curl -fsSL -o /etc/yum.repos.d/$origin.repo $base/$origin.repo
 sudo dnf install PACKAGE
+</pre>
+
+<h2>Signing key</h2>
+<p>Fingerprint: <code>$fingerprint</code></p>
+<pre>
+curl -fsSL $base/keys/repo.asc | gpg --show-keys
 </pre>
 
 <h2>Published packages</h2>
