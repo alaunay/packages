@@ -23,4 +23,71 @@ jobs:
         run: shellcheck tools/build-repo.sh
 
       - name: Test the builder
-        run: bats tests
+        run: bats tests/build_repo.bats
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ruff
+        run: python3 -m pip install ruff==0.17.4
+
+      - name: Lint and test
+        run: |
+          ruff check tools tests
+          ruff format --check tools tests
+          python3 -m unittest discover -s tests -v
+
+  code-scanning:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck
+
+      - name: Convert the shellcheck findings
+        run: |
+          shellcheck -f json1 tools/build-repo.sh > shellcheck.json || true
+          python3 tools/shellcheck_sarif.py shellcheck.json shellcheck.sarif
+
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: shellcheck.sarif
+          category: shellcheck
+
+  dco:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Fetch the base branch
+        run: git fetch --no-tags origin "+refs/heads/${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}"
+
+      - name: Check the trailers
+        run: |
+          set -eu
+          base="origin/${{ github.base_ref }}"
+          failed=0
+          for sha in $(git rev-list "$base"..HEAD); do
+            body=$(git log -1 --format=%B "$sha")
+            printf '%s\n' "$body" | grep -q '^Co-authored-by: .\+ <.\+@.\+>$' ||
+              { echo "$sha: missing Co-authored-by" >&2; failed=1; }
+            printf '%s\n' "$body" | grep -q '^Signed-off-by: .\+ <.\+@.\+>$' ||
+              { echo "$sha: missing Signed-off-by" >&2; failed=1; }
+          done
+          exit "$failed"
