@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>${LABEL}</title>
+<h1>${LABEL}</h1>
+
+<h2>Install</h2>
+
+<h3>Debian and Ubuntu</h3>
+<pre>
+curl -fsSL ${BASE}/keys/repo.asc \
+  | sudo gpg --dearmor -o /usr/share/keyrings/${ORIGIN}.gpg
+echo "deb [signed-by=/usr/share/keyrings/${ORIGIN}.gpg] ${BASE}/deb stable main" \
+  | sudo tee /etc/apt/sources.list.d/${ORIGIN}.list
+sudo apt update
+sudo apt install PACKAGE
+</pre>
+
+<h3>CentOS and RHEL</h3>
+<pre>
+sudo curl -fsSL -o /etc/yum.repos.d/${ORIGIN}.repo ${BASE}/${ORIGIN}.repo
+sudo dnf install PACKAGE
+</pre>
+
+<h2>Signing key</h2>
+<p>Fingerprint: <code>${FINGERPRINT}</code></p>
+<pre>
+curl -fsSL ${BASE}/keys/repo.asc | gpg --show-keys
+</pre>
+
+<h2>Published packages</h2>
+
+<h3>apt</h3>
+<table>
+<thead><tr><th>Package</th><th>Version</th></tr></thead>
+<tbody>
+${DEB_ROWS}</tbody>
+</table>
+
+<h3>rpm</h3>
+<table>
+<thead><tr><th>Package</th><th>Version</th></tr></thead>
+<tbody>
+${RPM_ROWS}</tbody>
+</table>
+
+<p><a href="deb/">apt repository</a> · <a href="rpm/el10/">rpm repository</a>.</p>
+</html>

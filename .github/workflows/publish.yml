@@ -28,7 +28,7 @@ jobs:
       - name: Install the repository tools
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq apt-utils createrepo-c dpkg-dev gnupg rpm
+          sudo apt-get install -y -qq apt-utils createrepo-c dpkg-dev gettext gnupg rpm
 
       - name: Import the signing key
         env:

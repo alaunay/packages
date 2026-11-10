@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>${LABEL}: rpm repository</title>
+<h1>${LABEL}: rpm repository</h1>
+
+<pre>
+sudo curl -fsSL -o /etc/yum.repos.d/${ORIGIN}.repo ${BASE}/${ORIGIN}.repo
+sudo dnf install PACKAGE
+</pre>
+
+<table>
+<thead><tr><th>Package</th><th>Version</th></tr></thead>
+<tbody>
+${RPM_ROWS}</tbody>
+</table>
+
+<p><a href="../../">All packages</a> · <a href="../../deb/">apt</a></p>
+</html>

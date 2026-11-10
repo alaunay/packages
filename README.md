@@ -48,7 +48,8 @@ itself a package.
 
 ## Contents
 
-`projects.txt` lists the repositories to publish. The workflow collects the
+`templates/` holds the HTML pages, rendered at build time. `projects.txt`
+lists the repositories to publish. The workflow collects the
 assets of each latest release, rebuilds both repositories, and deploys them
 on a schedule, on demand, and on a `release` repository dispatch.
 

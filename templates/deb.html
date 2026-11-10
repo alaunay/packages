@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>${LABEL}: apt repository</title>
+<h1>${LABEL}: apt repository</h1>
+
+<pre>
+curl -fsSL ${BASE}/keys/repo.asc \
+  | sudo gpg --dearmor -o /usr/share/keyrings/${ORIGIN}.gpg
+echo "deb [signed-by=/usr/share/keyrings/${ORIGIN}.gpg] ${BASE}/deb stable main" \
+  | sudo tee /etc/apt/sources.list.d/${ORIGIN}.list
+sudo apt update
+sudo apt install PACKAGE
+</pre>
+
+<table>
+<thead><tr><th>Package</th><th>Version</th></tr></thead>
+<tbody>
+${DEB_ROWS}</tbody>
+</table>
+
+<p><a href="../">All packages</a> · <a href="../rpm/el10/">rpm</a></p>
+</html>
