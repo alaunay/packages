@@ -108,6 +108,54 @@ if [ -n "$key" ]; then
 	gpg --armor --export "$key" > "$out/keys/repo.asc"
 fi
 
+cat > "$out/deb/index.html" <<EOF
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>$label: apt repository</title>
+<h1>$label: apt repository</h1>
+
+<pre>
+curl -fsSL $base/keys/repo.asc \\
+  | sudo gpg --dearmor -o /usr/share/keyrings/$origin.gpg
+echo "deb [signed-by=/usr/share/keyrings/$origin.gpg] $base/deb stable main" \\
+  | sudo tee /etc/apt/sources.list.d/$origin.list
+sudo apt update
+sudo apt install PACKAGE
+</pre>
+
+<table>
+<thead><tr><th>Package</th><th>Version</th></tr></thead>
+<tbody>
+$deb_rows</tbody>
+</table>
+
+<p><a href="../">All packages</a> · <a href="../rpm/el10/">rpm</a></p>
+</html>
+EOF
+
+cat > "$out/rpm/el10/index.html" <<EOF
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>$label: rpm repository</title>
+<h1>$label: rpm repository</h1>
+
+<pre>
+sudo curl -fsSL -o /etc/yum.repos.d/$origin.repo $base/$origin.repo
+sudo dnf install PACKAGE
+</pre>
+
+<table>
+<thead><tr><th>Package</th><th>Version</th></tr></thead>
+<tbody>
+$rpm_rows</tbody>
+</table>
+
+<p><a href="../../">All packages</a> · <a href="../../deb/">apt</a></p>
+</html>
+EOF
+
 cat > "$out/$origin.repo" <<EOF
 [$origin]
 name=$label
