@@ -116,7 +116,7 @@ fi
 # shellcheck disable=SC2016
 # envsubst takes the list of variables, not the shell
 render() {
-	envsubst '${LABEL} ${ORIGIN} ${BASE} ${DEB_ROWS} ${RPM_ROWS} ${FINGERPRINT}' \
+	envsubst '${LABEL} ${ORIGIN} ${BASE} ${DEB_ROWS} ${RPM_ROWS} ${FINGERPRINT} ${CSS_VERSION}' \
 		< "$templates/$1" > "$2"
 }
 
@@ -126,7 +126,8 @@ BASE=$base
 DEB_ROWS=$deb_rows
 RPM_ROWS=$rpm_rows
 FINGERPRINT=$fingerprint
-export LABEL ORIGIN BASE DEB_ROWS RPM_ROWS FINGERPRINT
+CSS_VERSION=$(cksum < "$templates/style.css" | awk '{ print $1 }')
+export LABEL ORIGIN BASE DEB_ROWS RPM_ROWS FINGERPRINT CSS_VERSION
 
 cp "$templates/style.css" "$out/style.css"
 render deb.html "$out/deb/index.html"
