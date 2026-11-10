@@ -8,8 +8,9 @@ One apt repository and one RPM repository, served from GitHub Pages for the
 software published by @alaunay.
 
 - `tools/build-repo.sh` assembles the site from the release assets.
-- `templates/` holds the HTML pages; the script renders them with
-  `envsubst`. Never embed HTML in the script.
+- `templates/` holds the HTML pages and their stylesheet; the script
+  renders the pages with `envsubst` and copies `style.css`. Never embed
+  HTML in the script.
 - `projects.txt` lists the repositories to collect.
 - `.github/workflows/publish.yml` collects, builds, and deploys.
 
