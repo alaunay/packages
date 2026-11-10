@@ -1,88 +1,171 @@
 :root {
 	color-scheme: light dark;
-	--background: #ffffff;
-	--content: #1f2328;
-	--muted: #59636e;
-	--border: #d1d9e0;
-	--code-background: #f6f8fa;
-	--accent: #0550ae;
+	--background: #fbfcfe;
+	--surface: #ffffff;
+	--surface-raised: #ffffff;
+	--content: #14181f;
+	--muted: #5b6572;
+	--border: #e2e7ee;
+	--code-background: #0f141b;
+	--code-content: #dbe4f0;
+	--accent: #2f6fed;
+	--accent-soft: rgba(47, 111, 237, 0.12);
+	--shine: rgba(47, 111, 237, 0.22);
+	--radius: 14px;
 }
 
 @media (prefers-color-scheme: dark) {
 	:root {
-		--background: #0d1117;
-		--content: #e6edf3;
-		--muted: #9198a1;
-		--border: #3d444d;
-		--code-background: #161b22;
-		--accent: #6cb6ff;
+		--background: #070a0f;
+		--surface: rgba(22, 27, 34, 0.72);
+		--surface-raised: #11161d;
+		--content: #e8edf5;
+		--muted: #9aa4b2;
+		--border: #232b36;
+		--code-background: #0b1017;
+		--code-content: #d7e0ee;
+		--accent: #7aa2ff;
+		--accent-soft: rgba(122, 162, 255, 0.14);
+		--shine: rgba(122, 162, 255, 0.3);
 	}
 }
 
-body {
-	margin: 3rem auto;
-	max-width: 46rem;
-	padding: 0 1rem;
-	background: var(--background);
-	color: var(--content);
-	font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+* {
+	box-sizing: border-box;
 }
 
-h1,
-h2,
-h3 {
-	line-height: 1.25;
-	margin: 2rem 0 0.75rem;
+html {
+	background: var(--background);
+}
+
+body {
+	margin: 0 auto;
+	max-width: 58rem;
+	padding: 4rem 1.25rem 3rem;
+	background:
+		radial-gradient(60rem 30rem at 15% -10%, var(--accent-soft), transparent 60%),
+		radial-gradient(50rem 25rem at 95% 0%, var(--accent-soft), transparent 55%),
+		var(--background);
+	color: var(--content);
+	font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	-webkit-font-smoothing: antialiased;
+}
+
+.hero {
+	margin-bottom: 2.5rem;
 }
 
 h1 {
-	font-size: 1.9rem;
+	font-size: clamp(2rem, 5vw, 3rem);
+	letter-spacing: -0.03em;
+	line-height: 1.05;
+	margin: 0 0 0.6rem;
+	background: linear-gradient(120deg, var(--content) 30%, var(--accent));
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+}
+
+.tagline {
+	color: var(--muted);
+	font-size: 1.05rem;
+	margin: 0;
+	max-width: 40rem;
 }
 
 h2 {
 	font-size: 1.35rem;
+	letter-spacing: -0.015em;
+	margin: 3rem 0 0.9rem;
 }
 
 h3 {
-	font-size: 1.1rem;
+	color: var(--muted);
+	font-size: 0.8rem;
+	font-weight: 650;
+	letter-spacing: 0.12em;
+	margin: 2rem 0 0.6rem;
+	text-transform: uppercase;
 }
 
 a {
 	color: var(--accent);
+	text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
+	text-underline-offset: 0.2em;
+	transition: text-decoration-color 120ms ease;
+}
+
+a:hover {
+	text-decoration-color: var(--accent);
 }
 
 pre {
 	background: var(--code-background);
 	border: 1px solid var(--border);
-	border-radius: 0.5rem;
+	border-radius: var(--radius);
+	box-shadow:
+		0 1px 2px rgba(0, 0, 0, 0.18),
+		inset 0 1px 0 rgba(255, 255, 255, 0.04);
+	color: var(--code-content);
+	line-height: 1.6;
+	margin: 0.9rem 0;
 	overflow-wrap: anywhere;
-	padding: 0.75rem 1rem;
+	padding: 1.15rem 1.25rem;
 	white-space: pre-wrap;
 }
 
 code {
 	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-	font-size: 0.95em;
+	font-size: 0.93em;
 }
 
 table {
-	border-collapse: collapse;
-	margin: 1rem 0;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	border-collapse: separate;
+	border-spacing: 0;
+	box-shadow: 0 10px 30px -24px var(--shine);
+	overflow: hidden;
 	width: 100%;
 }
 
 th,
 td {
 	border-bottom: 1px solid var(--border);
-	padding: 0.45rem 0.6rem;
+	padding: 0.7rem 1rem;
 	text-align: left;
 }
 
 th {
+	background: var(--surface-raised);
 	color: var(--muted);
-	font-weight: 600;
+	font-size: 0.78rem;
+	font-weight: 650;
+	letter-spacing: 0.09em;
+	text-transform: uppercase;
 }
 
-p {
-	margin: 0.8rem 0;
+tbody tr {
+	transition: background 120ms ease;
+}
+
+tbody tr:hover {
+	background: var(--accent-soft);
+}
+
+tbody tr:last-child td {
+	border-bottom: 0;
+}
+
+footer {
+	border-top: 1px solid var(--border);
+	color: var(--muted);
+	font-size: 0.9rem;
+	margin-top: 4rem;
+	padding-top: 1.25rem;
+}
+
+::selection {
+	background: var(--accent-soft);
 }

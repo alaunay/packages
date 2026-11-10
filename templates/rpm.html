@@ -7,7 +7,11 @@
 <title>${LABEL}: rpm repository</title>
 </head>
 <body>
+<main>
+<header class="hero">
 <h1>${LABEL}: rpm repository</h1>
+<p class="tagline">CentOS and RHEL packages, signed and served from GitHub Pages.</p>
+</header>
 
 <pre>
 sudo curl -fsSL -o /etc/yum.repos.d/${ORIGIN}.repo ${BASE}/${ORIGIN}.repo
@@ -21,5 +25,7 @@ ${RPM_ROWS}</tbody>
 </table>
 
 <p><a href="../../">All packages</a> · <a href="../../deb/">apt</a></p>
+<footer><a href="${BASE}">${ORIGIN}</a> · <a href="${BASE}/keys/repo.asc">signing key</a></footer>
+</main>
 </body>
 </html>

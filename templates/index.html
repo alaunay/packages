@@ -7,7 +7,11 @@
 <title>${LABEL}</title>
 </head>
 <body>
+<main>
+<header class="hero">
 <h1>${LABEL}</h1>
+<p class="tagline">One apt repository and one rpm repository, signed and served from GitHub Pages.</p>
+</header>
 
 <h2>Install</h2>
 
@@ -50,5 +54,7 @@ ${RPM_ROWS}</tbody>
 </table>
 
 <p><a href="deb/">apt repository</a> · <a href="rpm/el10/">rpm repository</a>.</p>
+<footer><a href="${BASE}">${ORIGIN}</a> · <a href="${BASE}/keys/repo.asc">signing key</a></footer>
+</main>
 </body>
 </html>
