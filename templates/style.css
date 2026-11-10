@@ -74,6 +74,23 @@ h1 {
 	max-width: 40rem;
 }
 
+.key-pill {
+	display: inline-block;
+	margin: 1.25rem 0 0;
+	padding: 0.4rem 0.85rem;
+	background: var(--accent-soft);
+	border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+	border-radius: 999px;
+	color: var(--muted);
+	font-size: 0.82rem;
+	letter-spacing: 0.02em;
+}
+
+.key-pill code {
+	color: var(--content);
+	word-spacing: 0.15em;
+}
+
 h2 {
 	font-size: 1.35rem;
 	letter-spacing: -0.015em;
