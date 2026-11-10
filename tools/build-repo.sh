@@ -10,6 +10,10 @@
 
 set -eu
 
+# Directory of this script, to find the templates
+script_dir=$(cd -- "$(dirname -- "$0")" && pwd)
+templates="$script_dir/../templates"
+
 dist=${1:?usage: build-repo.sh DIST OUT}
 out=${2:?usage: build-repo.sh DIST OUT}
 key=${REPO_GPG_KEY_ID:-}
@@ -108,53 +112,24 @@ if [ -n "$key" ]; then
 	gpg --armor --export "$key" > "$out/keys/repo.asc"
 fi
 
-cat > "$out/deb/index.html" <<EOF
-<!doctype html>
-<html lang="en">
-<meta charset="utf-8">
-<title>$label: apt repository</title>
-<h1>$label: apt repository</h1>
+# ---- Pages ------------------------------------------------------------
+# shellcheck disable=SC2016
+# envsubst takes the list of variables, not the shell
+render() {
+	envsubst '${LABEL} ${ORIGIN} ${BASE} ${DEB_ROWS} ${RPM_ROWS} ${FINGERPRINT}' \
+		< "$templates/$1" > "$2"
+}
 
-<pre>
-curl -fsSL $base/keys/repo.asc \\
-  | sudo gpg --dearmor -o /usr/share/keyrings/$origin.gpg
-echo "deb [signed-by=/usr/share/keyrings/$origin.gpg] $base/deb stable main" \\
-  | sudo tee /etc/apt/sources.list.d/$origin.list
-sudo apt update
-sudo apt install PACKAGE
-</pre>
+LABEL=$label
+ORIGIN=$origin
+BASE=$base
+DEB_ROWS=$deb_rows
+RPM_ROWS=$rpm_rows
+FINGERPRINT=$fingerprint
+export LABEL ORIGIN BASE DEB_ROWS RPM_ROWS FINGERPRINT
 
-<table>
-<thead><tr><th>Package</th><th>Version</th></tr></thead>
-<tbody>
-$deb_rows</tbody>
-</table>
-
-<p><a href="../">All packages</a> · <a href="../rpm/el10/">rpm</a></p>
-</html>
-EOF
-
-cat > "$out/rpm/el10/index.html" <<EOF
-<!doctype html>
-<html lang="en">
-<meta charset="utf-8">
-<title>$label: rpm repository</title>
-<h1>$label: rpm repository</h1>
-
-<pre>
-sudo curl -fsSL -o /etc/yum.repos.d/$origin.repo $base/$origin.repo
-sudo dnf install PACKAGE
-</pre>
-
-<table>
-<thead><tr><th>Package</th><th>Version</th></tr></thead>
-<tbody>
-$rpm_rows</tbody>
-</table>
-
-<p><a href="../../">All packages</a> · <a href="../../deb/">apt</a></p>
-</html>
-EOF
+render deb.html "$out/deb/index.html"
+render rpm.html "$out/rpm/el10/index.html"
 
 cat > "$out/$origin.repo" <<EOF
 [$origin]
@@ -166,53 +141,4 @@ repo_gpgcheck=1
 gpgkey=$base/keys/repo.asc
 EOF
 
-cat > "$out/index.html" <<EOF
-<!doctype html>
-<html lang="en">
-<meta charset="utf-8">
-<title>$label</title>
-<h1>$label</h1>
-
-<h2>Install</h2>
-
-<h3>Debian and Ubuntu</h3>
-<pre>
-curl -fsSL $base/keys/repo.asc \\
-  | sudo gpg --dearmor -o /usr/share/keyrings/$origin.gpg
-echo "deb [signed-by=/usr/share/keyrings/$origin.gpg] $base/deb stable main" \\
-  | sudo tee /etc/apt/sources.list.d/$origin.list
-sudo apt update
-sudo apt install PACKAGE
-</pre>
-
-<h3>CentOS and RHEL</h3>
-<pre>
-sudo curl -fsSL -o /etc/yum.repos.d/$origin.repo $base/$origin.repo
-sudo dnf install PACKAGE
-</pre>
-
-<h2>Signing key</h2>
-<p>Fingerprint: <code>$fingerprint</code></p>
-<pre>
-curl -fsSL $base/keys/repo.asc | gpg --show-keys
-</pre>
-
-<h2>Published packages</h2>
-
-<h3>apt</h3>
-<table>
-<thead><tr><th>Package</th><th>Version</th></tr></thead>
-<tbody>
-$deb_rows</tbody>
-</table>
-
-<h3>rpm</h3>
-<table>
-<thead><tr><th>Package</th><th>Version</th></tr></thead>
-<tbody>
-$rpm_rows</tbody>
-</table>
-
-<p>Raw trees: <a href="deb/">apt</a>, <a href="rpm/el10/">rpm</a>.</p>
-</html>
-EOF
+render index.html "$out/index.html"
