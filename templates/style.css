@@ -48,12 +48,23 @@ body {
 	padding: 4rem 1.25rem 3rem;
 	background: transparent;
 	color: var(--content);
-	font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-	-webkit-font-smoothing: antialiased;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	font-size: 16px;
+	line-height: 1.65;
 }
 
 .hero {
 	margin-bottom: 2.5rem;
+}
+
+.hero::after {
+	background: linear-gradient(90deg, var(--accent), transparent);
+	border-radius: 2px;
+	content: "";
+	display: block;
+	height: 4px;
+	margin-top: 1.25rem;
+	width: 6rem;
 }
 
 h1 {
@@ -61,10 +72,7 @@ h1 {
 	letter-spacing: -0.03em;
 	line-height: 1.05;
 	margin: 0 0 0.6rem;
-	background: linear-gradient(120deg, var(--content) 30%, var(--accent));
-	-webkit-background-clip: text;
-	background-clip: text;
-	color: transparent;
+	color: var(--content);
 }
 
 .tagline {
