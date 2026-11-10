@@ -26,6 +26,7 @@ suite:
 bats tests/build_repo.bats
 ruff check tools tests
 python3 -m unittest discover -s tests
+tools/check-markup.sh
 ```
 
 The bats cases build a signed apt repository and a signed rpm repository
@@ -39,8 +40,13 @@ Every commit is signed with `git commit -s -S` and carries a
 
 ## Checks
 
-CI runs bats, the Python lint and tests, shellcheck-to-SARIF code scanning,
-and the commit trailer check. All four are required on `master`.
+CI runs bats, the Python lint and tests, the markup validation, the
+shellcheck-to-SARIF code scanning, and the commit trailer check. All of
+them are required on `master`.
+
+`tools/check-markup.sh` builds a throwaway site and submits every page to
+the Nu HTML Checker and the stylesheet to the CSS validator, both run by
+the W3C. It needs network access; a W3C outage fails the job.
 
 ## Secrets
 

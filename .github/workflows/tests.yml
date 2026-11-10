@@ -43,6 +43,19 @@ jobs:
           ruff format --check tools tests
           python3 -m unittest discover -s tests -v
 
+  markup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install the validator tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq apt-utils createrepo-c curl dpkg-dev gettext rpm
+
+      - name: Validate the pages and the stylesheet
+        run: tools/check-markup.sh
+
   code-scanning:
     runs-on: ubuntu-latest
     permissions:
