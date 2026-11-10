@@ -92,6 +92,7 @@ make_key() {
 	grep -q '^Package: testpkg$' "$SITE/deb/dists/stable/main/binary-amd64/Packages"
 	grep -q '<code>testpkg</code>' "$SITE/index.html"
 	[ -f "$SITE/deb/index.html" ]
+	[ -f "$SITE/style.css" ]
 	gpg --verify "$SITE/deb/dists/stable/InRelease" >/dev/null 2>&1
 }
 

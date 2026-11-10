@@ -128,6 +128,7 @@ RPM_ROWS=$rpm_rows
 FINGERPRINT=$fingerprint
 export LABEL ORIGIN BASE DEB_ROWS RPM_ROWS FINGERPRINT
 
+cp "$templates/style.css" "$out/style.css"
 render deb.html "$out/deb/index.html"
 render rpm.html "$out/rpm/el10/index.html"
 
