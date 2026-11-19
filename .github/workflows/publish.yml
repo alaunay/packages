@@ -69,5 +69,44 @@ jobs:
         with:
           path: site
 
+      - name: Wait for the Pages artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          # deploy-pages lists the artifacts of the run through a run-scoped
+          # API that can trail the upload, and it errors on zero artifact or on
+          # more than one. A rerun of the failed job uploads a second artifact,
+          # so delete the stale ones and keep the newest.
+          count() {
+            gh api "repos/$REPO/actions/runs/$RUN_ID/artifacts" \
+              --jq '[.artifacts[] | select(.name == "github-pages")] | length'
+          }
+          for _ in $(seq 1 30); do
+            found=$(count)
+            if [ "$found" -gt 1 ]; then
+              gh api "repos/$REPO/actions/runs/$RUN_ID/artifacts" \
+                --jq '[.artifacts[] | select(.name == "github-pages")]
+                      | sort_by(.created_at) | .[:-1] | .[].id' |
+                while read -r id; do
+                  echo "deleting stale artifact $id"
+                  gh api -X DELETE "repos/$REPO/actions/artifacts/$id"
+                done
+              sleep 2
+              continue
+            fi
+            if [ "$found" -eq 1 ]; then
+              # The deploy step reads the artifact through another API, which
+              # can trail the listing above. Let the upload settle first.
+              sleep 5
+              echo "Pages artifact is visible"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Pages artifact did not become visible" >&2
+          exit 1
+
       - uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
         id: deployment
