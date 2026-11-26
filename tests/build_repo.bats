@@ -170,3 +170,44 @@ make_key() {
 	grep -q '^Package: testpkg$' "$SITE/deb/dists/stable/main/binary-arm64/Packages"
 	[ "$(grep -c '<code>testpkg</code>' "$SITE/index.html")" -eq 1 ]
 }
+
+@test "latest-release prints usage without a project" {
+	run "$ROOT/tools/latest-release.sh"
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"usage: latest-release.sh OWNER/NAME"* ]]
+}
+
+@test "latest-release picks the newest published release" {
+	command -v jq >/dev/null || skip "jq is missing"
+
+	stub="${WORK}/bin"
+	mkdir -p "$stub"
+	cat > "$stub/gh" <<'STUB'
+#!/bin/sh
+# Stand-in for gh api --jq EXPR: prints the releases, then applies EXPR.
+expr=
+while [ $# -gt 0 ]; do
+	case $1 in
+	--jq)
+		expr=$2
+		shift 2
+		;;
+	*) shift ;;
+	esac
+done
+jq -r "$expr" <<'JSON'
+[
+  {"tag_name": "v1.9.0", "draft": false, "prerelease": false, "published_at": "2026-03-01T00:00:00Z"},
+  {"tag_name": "v2.0.0", "draft": false, "prerelease": false, "published_at": "2026-01-01T00:00:00Z"},
+  {"tag_name": "v3.0.0", "draft": true, "prerelease": false, "published_at": "2026-04-01T00:00:00Z"},
+  {"tag_name": "v4.0.0-rc1", "draft": false, "prerelease": true, "published_at": "2026-05-01T00:00:00Z"}
+]
+JSON
+STUB
+	chmod +x "$stub/gh"
+
+	run env PATH="${stub}:${PATH}" "$ROOT/tools/latest-release.sh" example/project
+
+	[ "$status" -eq 0 ]
+	[ "$output" = "v1.9.0" ]
+}

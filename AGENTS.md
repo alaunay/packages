@@ -8,6 +8,8 @@ One apt repository and one RPM repository, served from GitHub Pages for the
 software published by @alaunay.
 
 - `tools/build-repo.sh` assembles the site from the release assets.
+- `tools/latest-release.sh` picks the newest published release of a project,
+  by publication date rather than by GitHub's "latest" mark.
 - `templates/` holds the HTML pages and their stylesheet; the script
   renders the pages with `envsubst` and copies `style.css`. Never embed
   HTML in the script.
@@ -18,9 +20,14 @@ software published by @alaunay.
   publish when one is newer than `projects.json`.
 
 Add a project by appending `owner/name` to `projects.txt`. The project must
-publish `.deb` and `.rpm` files as assets of its latest release. Debian
-builds must target `amd64` or `arm64`, the two architectures the apt
+publish `.deb` and `.rpm` files as assets of its newest published release.
+Debian builds must target `amd64` or `arm64`, the two architectures the apt
 repository indexes.
+
+Release selection follows publication date, not GitHub's "latest" mark.
+Projects such as `anomalyco/opencode` keep that mark on an older line so
+their installer resolves the combined release, while the desktop packages
+ship on the newer one.
 
 ## Tests
 
