@@ -53,8 +53,9 @@ packaged here, and installing `opencode` does not install a terminal
 
 `templates/` holds the HTML pages, rendered at build time. `projects.txt`
 lists the repositories to publish. The workflow collects the
-assets of each latest release, rebuilds both repositories, and deploys them
-on a schedule, on demand, and on a `release` repository dispatch.
+assets of each project's newest published release, rebuilds both
+repositories, and deploys them on a schedule, on demand, and on a `release`
+repository dispatch.
 
 The apt repository indexes `amd64` and `arm64`; the rpm repository indexes
 every architecture the release ships. Both formats carry the same package
@@ -62,8 +63,13 @@ versions.
 
 A project dispatches on every release when its `PACKAGES_TOKEN` secret is
 set; the token needs write access here. Without it, `watch.yml` polls the
-latest release every 30 minutes and starts the publish as soon as it differs
-from the version recorded in the site's `projects.json`.
+newest published release every 30 minutes and starts the publish as soon as
+it differs from the version recorded in the site's `projects.json`.
+
+The newest release is the most recently published one, not the release
+GitHub marks as "latest": some projects keep that mark on an older line for
+their installer. `opencode` publishes its desktop packages in 2.x while the
+mark stays on 1.x, so the repository carries 2.x.
 
 ## Key rotation
 
@@ -85,7 +91,8 @@ If the key were compromised, publish the revocation certificate first:
 Publish the `.deb` and `.rpm` as release assets. Nothing else is needed: the
 package names, versions, and contents come from the release. Debian builds
 must target `amd64` or `arm64`; other architectures are left out of the apt
-index.
+index. The newest published release is the one collected, whatever GitHub
+marks as "latest"; a draft or a prerelease is never collected.
 
 ## Licence
 

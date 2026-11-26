@@ -39,10 +39,14 @@ jobs:
           stale=0
           while read -r project; do
             [ -n "$project" ] || continue
-            latest=$(gh release view --repo "$project" --json tagName --jq .tagName) || {
+            latest=$(tools/latest-release.sh "$project") || {
               echo "$project: no release, skipped" >&2
               continue
             }
+            if [ -z "$latest" ]; then
+              echo "$project: no published release, skipped" >&2
+              continue
+            fi
             current=$(printf '%s' "$published" |
               jq -r --arg project "$project" '.[$project] // ""')
             if [ "$latest" = "$current" ]; then

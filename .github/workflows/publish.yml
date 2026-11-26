@@ -48,10 +48,14 @@ jobs:
           : > dist/projects.txt
           while read -r project; do
             [ -n "$project" ] || continue
-            tag=$(gh release view --repo "$project" --json tagName --jq .tagName) || {
+            tag=$(tools/latest-release.sh "$project") || {
               echo "$project: no release, skipped" >&2
               continue
             }
+            if [ -z "$tag" ]; then
+              echo "$project: no published release, skipped" >&2
+              continue
+            fi
             echo "$project: $tag"
             printf '%s\t%s\n' "$project" "$tag" >> dist/projects.txt
             mkdir -p "dist/$project"
