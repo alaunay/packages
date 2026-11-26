@@ -107,6 +107,11 @@ make_key() {
 	grep -q '<code>testpkg</code>' "$SITE/index.html"
 	[ -f "$SITE/deb/index.html" ]
 	[ -f "$SITE/style.css" ]
+
+	# The install snippet is deb822, not a one-line .list entry.
+	grep -q 'sources.list.d/test.sources' "$SITE/deb/index.html"
+	grep -q 'Types: deb' "$SITE/index.html"
+	grep -q 'Signed-By: /usr/share/keyrings/test.gpg' "$SITE/index.html"
 	gpg --verify "$SITE/deb/dists/stable/InRelease" >/dev/null 2>&1
 }
 

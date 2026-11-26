@@ -20,11 +20,17 @@
 <pre>
 curl -fsSL ${BASE}/keys/repo.asc \
   | sudo gpg --dearmor -o /usr/share/keyrings/${ORIGIN}.gpg
-echo "deb [signed-by=/usr/share/keyrings/${ORIGIN}.gpg] ${BASE}/deb stable main" \
-  | sudo tee /etc/apt/sources.list.d/${ORIGIN}.list
+sudo tee /etc/apt/sources.list.d/${ORIGIN}.sources &gt;/dev/null &lt;&lt;'EOF'
+Types: deb
+URIs: ${BASE}/deb
+Suites: stable
+Components: main
+Signed-By: /usr/share/keyrings/${ORIGIN}.gpg
+EOF
 sudo apt update
 sudo apt install PACKAGE
 </pre>
+<p>This needs apt 2.4 or later: Debian 12 and Ubuntu 22.04 and newer.</p>
 
 <h3>CentOS and RHEL</h3>
 <pre>
