@@ -111,16 +111,32 @@ vnu() {
 check_html() {
 	page=$1
 	relative=${page#"$site"/}
-	errors="$work/vnu.err"
 
-	# The checker exits non-zero as soon as it reports an error, so the body,
-	# not the status, decides: JSON means it ran and the parser below reads
-	# the findings, anything else means the checker itself failed.
-	response=$(vnu --format json "$relative" 2>"$errors") || true
+	# The checker reports on stderr, Docker writes its pull progress there too,
+	# and the checker exits non-zero as soon as it reports an error. So take
+	# the last line that parses as JSON: its presence means the checker ran,
+	# whatever the exit status, and the parser below reads the findings.
+	output=$(vnu --format json "$relative" 2>&1) || true
+	response=$(printf '%s\n' "$output" | python3 -c '
+import json
+import sys
 
-	if ! printf '%s' "$response" | python3 -c 'import json, sys; json.load(sys.stdin)' 2>/dev/null; then
+report = ""
+for line in sys.stdin:
+    line = line.strip()
+    if not line.startswith("{"):
+        continue
+    try:
+        json.loads(line)
+    except ValueError:
+        continue
+    report = line
+sys.stdout.write(report)
+')
+
+	if [ -z "$response" ]; then
 		echo "validator unavailable: $page" >&2
-		sed 's/^/  /' "$errors" >&2
+		printf '%s\n' "$output" | sed 's/^/  /' >&2
 		return 1
 	fi
 

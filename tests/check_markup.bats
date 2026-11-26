@@ -12,7 +12,8 @@ setup() {
 	mkdir -p "$STUB"
 
 	# Stand-in for the Nu HTML Checker. VNU_EMPTY breaks it the way a crash
-	# does, BAD_PAGE reports one error on that page.
+	# does, BAD_PAGE reports one error on that page, VNU_STDERR writes the
+	# report to stderr behind noise, the way the real image does.
 	cat > "$STUB/vnu" <<'STUB_VNU'
 #!/bin/sh
 for arg do
@@ -23,11 +24,21 @@ if [ "${VNU_EMPTY:-0}" = 1 ]; then
 	echo "vnu: cannot start" >&2
 	exit 1
 fi
+
 if [ "${BAD_PAGE:-}" = "$file" ]; then
-	printf '{"messages":[{"type":"error","lastLine":1,"message":"test error"}]}'
-	exit 1
+	report='{"messages":[{"type":"error","lastLine":1,"message":"test error"}]}'
+	status=1
+else
+	report='{"messages":[]}'
+	status=0
 fi
-printf '{"messages":[]}'
+
+if [ "${VNU_STDERR:-0}" = 1 ]; then
+	printf 'Picked up JAVA_TOOL_OPTIONS: \n%s\n' "$report" >&2
+else
+	printf '%s\n' "$report"
+fi
+exit "$status"
 STUB_VNU
 
 	# Stand-in for curl, which now only carries the CSS request.
@@ -87,6 +98,16 @@ require_tools() {
 	[[ "$output" == *"line 1: test error"* ]]
 	[[ "$output" == *"invalid HTML:"* ]]
 	[[ "$output" == *"/index.html"* ]]
+}
+
+@test "reads a report written to stderr behind noise" {
+	require_tools
+
+	VNU_STDERR=1 run "$ROOT/tools/check-markup.sh"
+
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"valid HTML: index.html"* ]]
+	[[ "$output" != *"validator unavailable"* ]]
 }
 
 @test "retries an empty CSS reply" {
