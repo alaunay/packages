@@ -7,11 +7,21 @@
 # Builds a throwaway site from tiny packages, then checks every page with
 # the Nu HTML Checker and the stylesheet with the CSS validator. Both are
 # the reference implementations run by the W3C.
+#
+# The services answer with an empty body now and then. Retry that, and report
+# it as an outage, so a flaky validator does not read as invalid markup.
+#
+# W3C_HTML_VALIDATOR, W3C_CSS_VALIDATOR, VALIDATOR_ATTEMPTS and
+# VALIDATOR_DELAY override the endpoints and the retry policy, for tests.
 
 set -eu
 
 script_dir=$(cd -- "$(dirname -- "$0")" && pwd)
 root=$(cd -- "$script_dir/.." && pwd)
+html_validator=${W3C_HTML_VALIDATOR:-https://validator.w3.org/nu/?out=json}
+css_validator=${W3C_CSS_VALIDATOR:-https://jigsaw.w3.org/css-validator/validator}
+attempts=${VALIDATOR_ATTEMPTS:-3}
+delay=${VALIDATOR_DELAY:-5}
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT INT TERM
 
@@ -56,11 +66,41 @@ REPO_ORIGIN=markup REPO_LABEL="Markup test" \
 	REPO_BASE_URL="https://example.org/packages" \
 	"$root/tools/build-repo.sh" "$dist" "$site" >/dev/null 2>&1
 
+# fetch_json URL [curl options...]
+#
+# Print the body of a validator reply, and succeed only when it is JSON. An
+# empty body or an HTML error page from the service is retried, then reported
+# as an outage by the caller.
+fetch_json() {
+	url=$1
+	shift
+
+	attempt=1
+	while [ "$attempt" -le "$attempts" ]; do
+		if body=$(curl -sS --retry 2 "$@" "$url") &&
+			printf '%s' "$body" | python3 -c 'import json, sys; json.load(sys.stdin)' 2>/dev/null; then
+			printf '%s' "$body"
+			return 0
+		fi
+
+		echo "attempt $attempt/$attempts: no JSON from $url" >&2
+		attempt=$((attempt + 1))
+		if [ "$attempt" -le "$attempts" ]; then
+			sleep "$delay"
+		fi
+	done
+
+	return 1
+}
+
 check_html() {
 	page=$1
-	response=$(curl -sS --retry 3 \
+	if ! response=$(fetch_json "$html_validator" \
 		-H 'Content-Type: text/html; charset=utf-8' \
-		--data-binary "@$page" 'https://validator.w3.org/nu/?out=json')
+		--data-binary "@$page"); then
+		echo "validator unavailable: $page" >&2
+		return 1
+	fi
 
 	if ! printf '%s' "$response" | python3 -c '
 import json
@@ -82,9 +122,11 @@ sys.exit(1 if errors else 0)
 
 check_css() {
 	stylesheet=$1
-	response=$(curl -sS --retry 3 -X POST \
-		-F "text=<$stylesheet" -F 'output=json' -F 'profile=css3svg' \
-		'https://jigsaw.w3.org/css-validator/validator')
+	if ! response=$(fetch_json "$css_validator" -X POST \
+		-F "text=<$stylesheet" -F 'output=json' -F 'profile=css3svg'); then
+		echo "validator unavailable: $stylesheet" >&2
+		return 1
+	fi
 
 	if ! printf '%s' "$response" | python3 -c '
 import json
