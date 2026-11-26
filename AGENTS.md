@@ -43,8 +43,9 @@ tools/check-markup.sh
 
 The bats cases build a signed apt repository and a signed rpm repository
 from throwaway packages and a throwaway key, and skip a case only when the
-distribution tooling for that format is absent. The markup cases stand a
-stub `curl` in place of the W3C services, so they need no network.
+distribution tooling for that format is absent. The markup cases stand stub
+checkers in place of the Nu checker and the CSS service, so they need no
+network and no container.
 
 ## Commit rules
 
@@ -57,11 +58,12 @@ CI runs bats, the Python lint and tests, the markup validation, the
 shellcheck-to-SARIF code scanning, and the commit trailer check. All of
 them are required on `master`.
 
-`tools/check-markup.sh` builds a throwaway site and submits every page to
-the Nu HTML Checker and the stylesheet to the CSS validator, both run by
-the W3C. It needs network access; a W3C outage fails the job. An empty or
+`tools/check-markup.sh` builds a throwaway site, then validates every page
+with the Nu HTML Checker run from its published image, and the stylesheet
+with the CSS validator run by the W3C. The HTML check is local, so a W3C
+outage cannot block it. The CSS check needs network access; an empty or
 non-JSON reply is retried, then reported as `validator unavailable`, so an
-outage never reads as invalid markup. Rerun the job when it says so.
+outage never reads as invalid styling. Rerun the job when it says so.
 
 ## Secrets
 
