@@ -53,6 +53,32 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq apt-utils createrepo-c curl dpkg-dev gettext rpm
 
+      - name: Date the checker image cache
+        id: month
+        run: echo "month=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the checker image
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/vnu-image.tar
+          key: vnu-image-${{ runner.os }}-${{ steps.month.outputs.month }}
+
+      - name: Prepare the checker image
+        env:
+          IMAGE: ghcr.io/validator/validator:latest
+        run: |
+          # The image is 320 MB, and pulling it dominates the job. Restore it
+          # from the cache, then pull anyway: present layers make that cheap,
+          # and a moved tag still ends up current for this run.
+          tar="${RUNNER_TEMP}/vnu-image.tar"
+          if [ -f "$tar" ]; then
+            docker load --input "$tar"
+          fi
+          docker pull --quiet "$IMAGE"
+          if [ ! -f "$tar" ]; then
+            docker save --output "$tar" "$IMAGE"
+          fi
+
       - name: Validate the pages and the stylesheet
         run: tools/check-markup.sh
 

@@ -18,12 +18,18 @@ Add the repository once, then install any package by name.
 ```console
 $ curl -fsSL https://alaunay.github.io/packages/keys/repo.asc \
     | sudo gpg --dearmor -o /usr/share/keyrings/alaunay.gpg
-$ echo "deb [signed-by=/usr/share/keyrings/alaunay.gpg] \
-https://alaunay.github.io/packages/deb stable main" \
-    | sudo tee /etc/apt/sources.list.d/alaunay.list
+$ sudo tee /etc/apt/sources.list.d/alaunay.sources >/dev/null <<'EOF'
+Types: deb
+URIs: https://alaunay.github.io/packages/deb
+Suites: stable
+Components: main
+Signed-By: /usr/share/keyrings/alaunay.gpg
+EOF
 $ sudo apt update
 $ sudo apt install PACKAGE
 ```
+
+This needs apt 2.4 or later, that is Debian 12 and Ubuntu 22.04 and newer.
 
 ### CentOS and RHEL
 
