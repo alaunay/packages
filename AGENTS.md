@@ -35,7 +35,7 @@ The builder has a bats suite, and the shellcheck converter a unittest
 suite:
 
 ```
-bats tests/build_repo.bats
+bats tests/
 ruff check tools tests
 python3 -m unittest discover -s tests
 tools/check-markup.sh
@@ -43,7 +43,8 @@ tools/check-markup.sh
 
 The bats cases build a signed apt repository and a signed rpm repository
 from throwaway packages and a throwaway key, and skip a case only when the
-distribution tooling for that format is absent.
+distribution tooling for that format is absent. The markup cases stand a
+stub `curl` in place of the W3C services, so they need no network.
 
 ## Commit rules
 
@@ -58,7 +59,9 @@ them are required on `master`.
 
 `tools/check-markup.sh` builds a throwaway site and submits every page to
 the Nu HTML Checker and the stylesheet to the CSS validator, both run by
-the W3C. It needs network access; a W3C outage fails the job.
+the W3C. It needs network access; a W3C outage fails the job. An empty or
+non-JSON reply is retried, then reported as `validator unavailable`, so an
+outage never reads as invalid markup. Rerun the job when it says so.
 
 ## Secrets
 
