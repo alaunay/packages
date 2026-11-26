@@ -1,2 +1,3 @@
 alaunay/euromillions
 alaunay/terminal-svg-demo
+anomalyco/opencode

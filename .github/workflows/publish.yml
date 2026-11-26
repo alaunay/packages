@@ -45,6 +45,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p dist
+          : > dist/projects.txt
           while read -r project; do
             [ -n "$project" ] || continue
             tag=$(gh release view --repo "$project" --json tagName --jq .tagName) || {
@@ -52,6 +53,7 @@ jobs:
               continue
             }
             echo "$project: $tag"
+            printf '%s\t%s\n' "$project" "$tag" >> dist/projects.txt
             mkdir -p "dist/$project"
             gh release download "$tag" --repo "$project" --dir "dist/$project" \
               --pattern "*.deb" --pattern "*.rpm" || true
@@ -64,6 +66,26 @@ jobs:
           REPO_LABEL: Alaunay packages
           REPO_BASE_URL: https://alaunay.github.io/packages
         run: tools/build-repo.sh dist site
+
+      - name: Record the collected versions
+        # watch.yml reads this file to tell whether a project has a release
+        # that the published repositories do not carry yet.
+        run: |
+          {
+            printf '{\n'
+            first=1
+            while IFS=$'\t' read -r project tag; do
+              [ -n "$project" ] || continue
+              if [ "$first" -eq 1 ]; then
+                first=0
+              else
+                printf ',\n'
+              fi
+              printf '  "%s": "%s"' "$project" "$tag"
+            done < dist/projects.txt
+            printf '\n}\n'
+          } > site/projects.json
+          cat site/projects.json
 
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:

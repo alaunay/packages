@@ -7,6 +7,9 @@
 #
 # DIST holds the .deb and .rpm files, in any layout. OUT receives the site
 # tree: /deb, /rpm, /keys.
+#
+# REPO_ARCHES is the space-separated list of Debian architectures to index,
+# amd64 and arm64 by default. The rpm repository indexes every architecture.
 
 set -eu
 
@@ -20,9 +23,12 @@ key=${REPO_GPG_KEY_ID:-}
 origin=${REPO_ORIGIN:-alaunay}
 label=${REPO_LABEL:-Alaunay packages}
 base=${REPO_BASE_URL:-https://alaunay.github.io/packages}
+arches=${REPO_ARCHES:-amd64 arm64}
 
-mkdir -p "$out/deb/dists/stable/main/binary-amd64" "$out/deb/pool/main" \
-	"$out/rpm/el10" "$out/keys"
+for arch in $arches; do
+	mkdir -p "$out/deb/dists/stable/main/binary-$arch"
+done
+mkdir -p "$out/deb/pool/main" "$out/rpm/el10" "$out/keys"
 
 sign() {
 	if [ -z "$key" ]; then
@@ -38,8 +44,26 @@ find "$dist" -name '*.deb' -exec cp {} "$out/deb/pool/main/" \;
 
 (
 	cd "$out/deb"
-	dpkg-scanpackages --multiversion pool > dists/stable/main/binary-amd64/Packages
-	gzip -9cf dists/stable/main/binary-amd64/Packages > dists/stable/main/binary-amd64/Packages.gz
+	# One scan, then one index per architecture: --arch filters on the file
+	# name pattern *_arch.deb, which upstream release assets do not follow.
+	dpkg-scanpackages --multiversion pool > Packages.scan
+	for arch in $arches; do
+		index="dists/stable/main/binary-$arch/Packages"
+		awk -v arch="$arch" '
+			function flush() {
+				if (stanza != "" && (pkgarch == arch || pkgarch == "all"))
+					printf "%s", stanza
+				stanza = ""
+				pkgarch = ""
+			}
+			/^Architecture: /{ pkgarch = $2 }
+			{ stanza = stanza $0 "\n" }
+			/^$/{ flush() }
+			END{ flush() }
+		' Packages.scan > "$index"
+		gzip -9cf "$index" > "$index.gz"
+	done
+	rm -f Packages.scan
 )
 
 cat > "$out/deb/apt-ftparchive.conf" <<EOF
@@ -47,7 +71,7 @@ APT::FTPArchive::Release::Origin "$origin";
 APT::FTPArchive::Release::Label "$label";
 APT::FTPArchive::Release::Suite "stable";
 APT::FTPArchive::Release::Codename "stable";
-APT::FTPArchive::Release::Architectures "amd64";
+APT::FTPArchive::Release::Architectures "$arches";
 APT::FTPArchive::Release::Components "main";
 APT::FTPArchive::Release::Description "$label";
 EOF
@@ -92,8 +116,9 @@ escape_rows='function esc(v) {
 }
 { printf "<tr><td><code>%s</code></td><td>%s</td></tr>\n", esc($1), esc($2) }'
 
-deb_rows=$(awk '/^Package: /{name=$2} /^Version: /{print name, $2}' \
-	"$out/deb/dists/stable/main/binary-amd64/Packages" | awk "$escape_rows")
+deb_rows=$(find "$out/deb/dists/stable/main" -name Packages -exec cat {} + |
+	awk '/^Package: /{name=$2} /^Version: /{print name, $2}' | sort -u |
+	awk "$escape_rows")
 
 rpm_rows=
 if find "$out/rpm/el10" -maxdepth 1 -name '*.rpm' | grep -q .; then
