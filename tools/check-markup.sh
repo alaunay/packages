@@ -1,24 +1,26 @@
 #!/bin/sh
 #
-# Validate the generated pages and stylesheet against the W3C services.
+# Validate the generated pages and stylesheet.
 #
 # usage: tools/check-markup.sh
 #
-# Builds a throwaway site from tiny packages, then checks every page with
-# the Nu HTML Checker and the stylesheet with the CSS validator. Both are
-# the reference implementations run by the W3C.
+# Builds a throwaway site from tiny packages, then checks every page with the
+# Nu HTML Checker and the stylesheet with the CSS validator, the reference
+# implementations.
 #
-# The services answer with an empty body now and then. Retry that, and report
-# it as an outage, so a flaky validator does not read as invalid markup.
+# The HTML check runs the checker locally, from its published image, so a W3C
+# outage cannot block it. The CSS check still calls the W3C service, which
+# answers with an empty body now and then: retry that, and report it as an
+# outage, so a flaky service does not read as invalid styling.
 #
-# W3C_HTML_VALIDATOR, W3C_CSS_VALIDATOR, VALIDATOR_ATTEMPTS and
-# VALIDATOR_DELAY override the endpoints and the retry policy, for tests.
+# VNU_IMAGE, VNU, W3C_CSS_VALIDATOR, VALIDATOR_ATTEMPTS and VALIDATOR_DELAY
+# override the checker, the CSS endpoint and the retry policy, for tests.
 
 set -eu
 
 script_dir=$(cd -- "$(dirname -- "$0")" && pwd)
 root=$(cd -- "$script_dir/.." && pwd)
-html_validator=${W3C_HTML_VALIDATOR:-https://validator.w3.org/nu/?out=json}
+vnu_image=${VNU_IMAGE:-ghcr.io/validator/validator:latest}
 css_validator=${W3C_CSS_VALIDATOR:-https://jigsaw.w3.org/css-validator/validator}
 attempts=${VALIDATOR_ATTEMPTS:-3}
 delay=${VALIDATOR_DELAY:-5}
@@ -93,12 +95,48 @@ fetch_json() {
 	return 1
 }
 
+# vnu [options] FILE...
+#
+# Run the Nu HTML Checker on paths relative to the site. VNU points at a local
+# binary; otherwise the published image runs it.
+vnu() {
+	if [ -n "${VNU:-}" ]; then
+		"$VNU" "$@"
+		return
+	fi
+
+	docker run --rm --volume "$site:/site:ro" --workdir /site "$vnu_image" vnu "$@"
+}
+
 check_html() {
 	page=$1
-	if ! response=$(fetch_json "$html_validator" \
-		-H 'Content-Type: text/html; charset=utf-8' \
-		--data-binary "@$page"); then
+	relative=${page#"$site"/}
+
+	# The checker reports on stderr, Docker writes its pull progress there too,
+	# and the checker exits non-zero as soon as it reports an error. So take
+	# the last line that parses as JSON: its presence means the checker ran,
+	# whatever the exit status, and the parser below reads the findings.
+	output=$(vnu --format json "$relative" 2>&1) || true
+	response=$(printf '%s\n' "$output" | python3 -c '
+import json
+import sys
+
+report = ""
+for line in sys.stdin:
+    line = line.strip()
+    if not line.startswith("{"):
+        continue
+    try:
+        json.loads(line)
+    except ValueError:
+        continue
+    report = line
+sys.stdout.write(report)
+')
+
+	if [ -z "$response" ]; then
 		echo "validator unavailable: $page" >&2
+		printf '%s\n' "$output" | sed 's/^/  /' >&2
 		return 1
 	fi
 
