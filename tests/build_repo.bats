@@ -29,6 +29,20 @@ EOF
 	dpkg-deb --build "$root" "$DIST/testpkg_1.0.0_all.deb" >/dev/null
 }
 
+make_deb_arch() {
+	local arch=$1
+	local root="${WORK}/deb-${arch}"
+	mkdir -p "$root/DEBIAN"
+	cat > "$root/DEBIAN/control" <<EOF
+Package: archpkg
+Version: 1.0.0
+Architecture: ${arch}
+Maintainer: Test <test@example.org>
+Description: test package for ${arch}
+EOF
+	dpkg-deb --build "$root" "$DIST/archpkg-1.0.0-${arch}.deb" >/dev/null
+}
+
 make_rpm() {
 	local top="${WORK}/rpmbuild"
 	mkdir -p "$top"
@@ -119,4 +133,40 @@ make_key() {
 	rpm --dbpath "${WORK}/rpmdb" --import "${WORK}/key.asc"
 	run rpm --dbpath "${WORK}/rpmdb" --checksig "$SITE"/rpm/el10/*.rpm
 	[[ "$output" == *"signatures OK"* ]]
+}
+
+@test "indexes every configured architecture" {
+	command -v dpkg-deb >/dev/null || skip "dpkg-deb is missing"
+	command -v dpkg-scanpackages >/dev/null || skip "dpkg-scanpackages is missing"
+	command -v apt-ftparchive >/dev/null || skip "apt-ftparchive is missing"
+	command -v gpg >/dev/null || skip "gpg is missing"
+
+	make_deb_arch amd64
+	make_deb_arch arm64
+	make_deb
+	key=$(make_key)
+
+	run env REPO_GPG_KEY_ID="$key" REPO_ORIGIN=test REPO_LABEL=test \
+		REPO_ARCHES="amd64 arm64" \
+		"$ROOT/tools/build-repo.sh" "$DIST" "$SITE"
+
+	[ "$status" -eq 0 ]
+	grep -q '^Architectures: amd64 arm64$' "$SITE/deb/dists/stable/Release"
+	grep -q '^Package: archpkg$' "$SITE/deb/dists/stable/main/binary-amd64/Packages"
+	grep -q '^Package: archpkg$' "$SITE/deb/dists/stable/main/binary-arm64/Packages"
+	[ -f "$SITE/deb/dists/stable/main/binary-arm64/Packages.gz" ]
+
+	# An arm64 build must not be offered to amd64 clients, nor the reverse.
+	run grep -q '^Architecture: arm64$' "$SITE/deb/dists/stable/main/binary-amd64/Packages"
+	[ "$status" -ne 0 ]
+	run grep -q '^Architecture: amd64$' "$SITE/deb/dists/stable/main/binary-arm64/Packages"
+	[ "$status" -ne 0 ]
+
+	# One row per package and version, not one per architecture.
+	[ "$(grep -c '<code>archpkg</code>' "$SITE/index.html")" -eq 1 ]
+
+	# An architecture-independent package belongs to every index.
+	grep -q '^Package: testpkg$' "$SITE/deb/dists/stable/main/binary-amd64/Packages"
+	grep -q '^Package: testpkg$' "$SITE/deb/dists/stable/main/binary-arm64/Packages"
+	[ "$(grep -c '<code>testpkg</code>' "$SITE/index.html")" -eq 1 ]
 }

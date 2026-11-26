@@ -1,0 +1,71 @@
+name: watch
+
+# Upstream projects cannot dispatch to us: they belong to other owners. Poll
+# their latest release instead and start publish.yml as soon as one differs
+# from the version the published repositories carry. publish.yml records those
+# versions in projects.json on the site, so this job needs no stored state.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: watch
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Compare the upstream releases with the published ones
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BASE: https://alaunay.github.io/packages
+        run: |
+          set -eu
+
+          # The query string defeats the Pages CDN cache. A missing file means
+          # no publish has run since projects.json was introduced.
+          published=$(curl -fsS "$BASE/projects.json?t=$(date +%s)" || printf '{}')
+
+          stale=0
+          while read -r project; do
+            [ -n "$project" ] || continue
+            latest=$(gh release view --repo "$project" --json tagName --jq .tagName) || {
+              echo "$project: no release, skipped" >&2
+              continue
+            }
+            current=$(printf '%s' "$published" |
+              jq -r --arg project "$project" '.[$project] // ""')
+            if [ "$latest" = "$current" ]; then
+              echo "$project: up to date at $latest"
+            else
+              echo "$project: published '$current', upstream '$latest'"
+              stale=1
+            fi
+          done < projects.txt
+
+          if [ "$stale" -eq 0 ]; then
+            echo "every project is published at its latest release"
+            exit 0
+          fi
+
+          # A publish run started by the previous poll may still be building;
+          # another one would only queue behind the pages concurrency group.
+          in_flight=$(gh run list --repo "$REPO" --workflow publish.yml --limit 20 \
+            --json status --jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length')
+          if [ "$in_flight" -gt 0 ]; then
+            echo "$in_flight publish run(s) in flight, waiting for the next poll"
+            exit 0
+          fi
+
+          echo "starting publish.yml"
+          gh workflow run publish.yml --repo "$REPO"

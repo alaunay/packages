@@ -41,10 +41,13 @@ Replace `PACKAGE` with one of the names below. The landing page at
 | Package | What it does | Source |
 | --- | --- | --- |
 | `euromillions` | Draws EuroMillions grids in the terminal | [alaunay/euromillions](https://github.com/alaunay/euromillions) |
+| `opencode` | OpenCode desktop app, the graphical client | [anomalyco/opencode](https://github.com/anomalyco/opencode) |
 | `terminal-svg-demo` | Renders a terminal session as animated SVG | [alaunay/terminal-svg-demo](https://github.com/alaunay/terminal-svg-demo) |
 
 The same names exist in both formats. `github.com/alaunay/packages` is not
-itself a package.
+itself a package. `opencode` is the desktop application: the CLI is not
+packaged here, and installing `opencode` does not install a terminal
+`opencode` command.
 
 ## Contents
 
@@ -53,9 +56,14 @@ lists the repositories to publish. The workflow collects the
 assets of each latest release, rebuilds both repositories, and deploys them
 on a schedule, on demand, and on a `release` repository dispatch.
 
+The apt repository indexes `amd64` and `arm64`; the rpm repository indexes
+every architecture the release ships. Both formats carry the same package
+versions.
+
 A project dispatches on every release when its `PACKAGES_TOKEN` secret is
-set; the token needs write access here. Without it the daily run picks the
-release up within a day.
+set; the token needs write access here. Without it, `watch.yml` polls the
+latest release every 30 minutes and starts the publish as soon as it differs
+from the version recorded in the site's `projects.json`.
 
 ## Key rotation
 
@@ -75,7 +83,9 @@ If the key were compromised, publish the revocation certificate first:
 ## Requirements for a project
 
 Publish the `.deb` and `.rpm` as release assets. Nothing else is needed: the
-package names, versions, and contents come from the release.
+package names, versions, and contents come from the release. Debian builds
+must target `amd64` or `arm64`; other architectures are left out of the apt
+index.
 
 ## Licence
 

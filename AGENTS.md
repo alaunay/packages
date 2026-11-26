@@ -12,10 +12,15 @@ software published by @alaunay.
   renders the pages with `envsubst` and copies `style.css`. Never embed
   HTML in the script.
 - `projects.txt` lists the repositories to collect.
-- `.github/workflows/publish.yml` collects, builds, and deploys.
+- `.github/workflows/publish.yml` collects, builds, and deploys, and records
+  the collected versions in `projects.json` on the site.
+- `.github/workflows/watch.yml` polls the upstream releases and starts the
+  publish when one is newer than `projects.json`.
 
 Add a project by appending `owner/name` to `projects.txt`. The project must
-publish `.deb` and `.rpm` files as assets of its latest release.
+publish `.deb` and `.rpm` files as assets of its latest release. Debian
+builds must target `amd64` or `arm64`, the two architectures the apt
+repository indexes.
 
 ## Tests
 
