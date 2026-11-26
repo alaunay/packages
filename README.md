@@ -29,7 +29,10 @@ $ sudo apt update
 $ sudo apt install PACKAGE
 ```
 
-This needs apt 2.4 or later, that is Debian 12 and Ubuntu 22.04 and newer.
+This needs Debian 10 or Ubuntu 18.04 and newer. The `.sources` format has
+been read since apt 1.1, but the built-in https method arrived in apt 1.5,
+so on Debian 9 or Ubuntu 16.04 install `apt-transport-https` first. Older
+still, apt 1.0 (Debian 8, Ubuntu 14.04) ignores the file without a warning.
 
 ### CentOS and RHEL
 
